@@ -19,7 +19,7 @@ Speech-to-text is done locally using **[WhisperKit](https://github.com/argmaxinc
   - If the requested model fails to load, the app falls back to `turbo`.
 - **Model delivery**: models are *not* bundled with the app. On first use, WhisperKit downloads the selected variant from Hugging Face Hub (via the `swift-transformers` `Hub` client) and caches it locally, so this is a one-time ~630MB download requiring internet access. Every run after that loads from the local cache.
 - **Compute placement**: by default the mel-spectrogram step runs on CPU+GPU and the audio encoder / text decoder run on CPU+Apple Neural Engine (ANE), matching WhisperKit's own defaults. This is configurable (see `ComputeAssignment` in `TranscriptionEngine.swift`) and can be recalibrated per-device.
-- **Inference flow** (`Sources/SpeechTextApp/Engine/TranscriptionEngine.swift`): load audio → run through the WhisperKit pipeline with language auto-detection and hallucination safeguards (compression-ratio / average-logprob / no-speech thresholds) → stream back transcript segments as they're finalized, so the UI can render partial results instead of waiting for the whole file.
+- **Inference flow** (`Sources/Engine/TranscriptionEngine.swift`): load audio → run through the WhisperKit pipeline with language auto-detection and hallucination safeguards (compression-ratio / average-logprob / no-speech thresholds) → stream back transcript segments as they're finalized, so the UI can render partial results instead of waiting for the whole file.
 
 ## Tech stack
 
@@ -33,7 +33,7 @@ Speech-to-text is done locally using **[WhisperKit](https://github.com/argmaxinc
 ## Project structure
 
 ```
-Sources/SpeechTextApp/
+Sources/
 ├── App/            SwiftUI app entry point and main views
 ├── Audio/           File-based audio import (AppKit) and live mic recording (AVFoundation)
 ├── Engine/          TranscriptionEngine.swift — the WhisperKit wrapper (model load, inference)

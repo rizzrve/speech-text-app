@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Xcode
+SpeechTextApp.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+.build/
+*.xcuserstate
+
+# Sample/generated output (contains real transcribed content, not source)
+transcripts/
+*-transcription-run-report.pdf

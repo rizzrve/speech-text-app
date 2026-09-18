@@ -29,7 +29,7 @@ enum ModelCalibration {
             let engine = TranscriptionEngine()
             let start = Date()
             _ = try await engine.ensureLoaded(model: model, compute: compute)
-            let outcome = try await engine.transcribe(fileURL: fileURL)
+            let outcome = try await engine.transcribe(fileURL: fileURL, language: .malay)
             let wallTime = Date().timeIntervalSince(start)
             let audioDuration = outcome.segments.last?.end ?? 0
             let rtf = wallTime > 0 ? audioDuration / wallTime : 0

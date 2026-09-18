@@ -47,7 +47,7 @@ final class RunReportTests: XCTestCase {
             requestedModel: .turbo,
             usedModel: .turbo,
             compute: .libraryDefault,
-            detectedLanguage: "en",
+            language: .english,
             modelLoadSeconds: 2,
             transcriptionSeconds: 10,
             outputFiles: [],
@@ -58,7 +58,8 @@ final class RunReportTests: XCTestCase {
         XCTAssertFalse(report.configuration.modelFellBack)
         XCTAssertEqual(report.configuration.requestedModel, TranscriptionModel.turbo.displayName)
         XCTAssertEqual(report.configuration.modelUsed, TranscriptionModel.turbo.displayName)
-        XCTAssertEqual(report.configuration.detectedLanguage, "en")
+        XCTAssertEqual(report.configuration.language, "en")
+        XCTAssertEqual(report.configuration.languageMode, "English")
         XCTAssertEqual(report.timing.modelLoadSeconds, 2)
         XCTAssertEqual(report.timing.transcriptionSeconds, 10)
         XCTAssertEqual(report.timing.totalSeconds, 12)
@@ -73,7 +74,7 @@ final class RunReportTests: XCTestCase {
             requestedModel: .largeV3,
             usedModel: .turbo,
             compute: .libraryDefault,
-            detectedLanguage: nil,
+            language: .malay,
             modelLoadSeconds: 2,
             transcriptionSeconds: 10,
             outputFiles: [],
@@ -107,7 +108,7 @@ final class RunReportTests: XCTestCase {
             requestedModel: .turbo,
             usedModel: .turbo,
             compute: .libraryDefault,
-            detectedLanguage: nil,
+            language: .malay,
             modelLoadSeconds: 2,
             transcriptionSeconds: 10,
             outputFiles: [],
@@ -131,7 +132,7 @@ final class RunReportTests: XCTestCase {
             requestedModel: .turbo,
             usedModel: .turbo,
             compute: .libraryDefault,
-            detectedLanguage: "en",
+            language: .english,
             modelLoadSeconds: 2,
             transcriptionSeconds: 10,
             outputFiles: [.init(kind: "txt", path: "/tmp/sample-transcript.txt", sizeBytes: 123)],

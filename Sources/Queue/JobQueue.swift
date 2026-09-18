@@ -13,13 +13,15 @@ final class TranscriptionJob: ObservableObject, Identifiable {
     let id = UUID()
     let sourceURL: URL
     private(set) var model: TranscriptionModel
+    let language: TranscriptionLanguage
     @Published var status: JobStatus = .queued
     @Published var segments: [TranscriptSegment] = []
     @Published var exportedFiles: Exporter.ExportedFiles?
 
-    init(sourceURL: URL, model: TranscriptionModel) {
+    init(sourceURL: URL, model: TranscriptionModel, language: TranscriptionLanguage) {
         self.sourceURL = sourceURL
         self.model = model
+        self.language = language
     }
 
     fileprivate func updateModel(_ model: TranscriptionModel) {
@@ -43,8 +45,8 @@ final class JobQueue: ObservableObject {
     }
 
     @discardableResult
-    func enqueue(url: URL, model: TranscriptionModel) -> TranscriptionJob {
-        let job = TranscriptionJob(sourceURL: url, model: model)
+    func enqueue(url: URL, model: TranscriptionModel, language: TranscriptionLanguage) -> TranscriptionJob {
+        let job = TranscriptionJob(sourceURL: url, model: model, language: language)
         jobs.append(job)
         processNextIfNeeded()
         return job
@@ -74,7 +76,7 @@ final class JobQueue: ObservableObject {
 
             job.status = .processing(stage: "Transcribing")
             let transcribeStart = Date()
-            let outcome = try await engine.transcribe(fileURL: job.sourceURL) { [weak job] partial in
+            let outcome = try await engine.transcribe(fileURL: job.sourceURL, language: job.language) { [weak job] partial in
                 Task { @MainActor in job?.segments = partial }
             }
             let transcriptionSeconds = Date().timeIntervalSince(transcribeStart)
@@ -104,7 +106,7 @@ final class JobQueue: ObservableObject {
                 requestedModel: requestedModel,
                 usedModel: loadedModel,
                 compute: .libraryDefault,
-                detectedLanguage: outcome.detectedLanguage,
+                language: job.language,
                 modelLoadSeconds: modelLoadSeconds,
                 transcriptionSeconds: transcriptionSeconds,
                 outputFiles: outputFiles,

@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var recorder = LiveRecorder()
     @State private var selectedJobID: TranscriptionJob.ID?
     @State private var selectedModel: TranscriptionModel = .turbo
+    @State private var selectedLanguage: TranscriptionLanguage = .malay
     @State private var isDropTargeted = false
     @State private var calibrationResults: [ModelCalibration.Result] = []
     @State private var calibrationRecommendation: String?
@@ -55,6 +56,14 @@ struct ContentView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                .labelsHidden()
+
+                Picker("Language", selection: $selectedLanguage) {
+                    ForEach(TranscriptionLanguage.allCases) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .pickerStyle(.segmented)
                 .labelsHidden()
 
                 HStack {
@@ -141,7 +150,7 @@ struct ContentView: View {
     private func addFiles() {
         let urls = AudioIngestion.presentFilePicker()
         for url in urls {
-            jobQueue.enqueue(url: url, model: selectedModel)
+            jobQueue.enqueue(url: url, model: selectedModel, language: selectedLanguage)
         }
     }
 
@@ -149,7 +158,7 @@ struct ContentView: View {
         Task {
             let urls = await AudioIngestion.extractDroppedFileURLs(from: providers)
             for url in urls {
-                jobQueue.enqueue(url: url, model: selectedModel)
+                jobQueue.enqueue(url: url, model: selectedModel, language: selectedLanguage)
             }
         }
     }
@@ -158,7 +167,7 @@ struct ContentView: View {
         do {
             if recorder.isRecording {
                 let url = try recorder.stop()
-                jobQueue.enqueue(url: url, model: selectedModel)
+                jobQueue.enqueue(url: url, model: selectedModel, language: selectedLanguage)
             } else {
                 try await recorder.start()
             }

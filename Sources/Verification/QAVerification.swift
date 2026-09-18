@@ -83,7 +83,7 @@ enum QAVerification {
     }
 
     private static func normalized(_ text: String) -> String {
-        text.trimmingCharacters(in: .whitespacesAndNewlines)
+        WhisperSpecialTokens.strip(text)
     }
 
     private static func isGarbled(_ text: String) -> Bool {

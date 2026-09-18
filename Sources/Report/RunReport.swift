@@ -26,7 +26,8 @@ struct RunReport: Codable {
         let modelUsed: String
         let modelFellBack: Bool
         let languageMode: String
-        let detectedLanguage: String?
+        /// Whisper language code the run was forced to (e.g. "ms").
+        let language: String
         let computeAssignment: [String: String]
     }
 
@@ -51,7 +52,7 @@ enum RunReportBuilder {
         requestedModel: TranscriptionModel,
         usedModel: TranscriptionModel,
         compute: ComputeAssignment,
-        detectedLanguage: String?,
+        language: TranscriptionLanguage,
         modelLoadSeconds: TimeInterval,
         transcriptionSeconds: TimeInterval,
         outputFiles: [RunReport.OutputFile],
@@ -60,7 +61,7 @@ enum RunReportBuilder {
         let modelFellBack = usedModel != requestedModel
 
         return RunReport(
-            schemaVersion: 1,
+            schemaVersion: 2,
             generatedAt: Date(),
             appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
             input: .init(
@@ -71,8 +72,8 @@ enum RunReportBuilder {
                 requestedModel: requestedModel.displayName,
                 modelUsed: usedModel.displayName,
                 modelFellBack: modelFellBack,
-                languageMode: "Automatic detection",
-                detectedLanguage: detectedLanguage,
+                languageMode: language.displayName,
+                language: language.whisperCode,
                 computeAssignment: compute.humanReadableAssignment
             ),
             timing: .init(

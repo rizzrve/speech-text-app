@@ -94,6 +94,27 @@ final class QAVerificationTests: XCTestCase {
         XCTAssertFalse(report.isClean)
     }
 
+    func testTokenOnlySegmentIsDetectedAsEmpty() {
+        let segments = [
+            segment(0, 0.0, 2.0, "<|0.00|> Real text<|2.00|>"),
+            segment(1, 2.0, 4.0, "<|startoftranscript|><|en|><|transcribe|><|0.00|><|endoftext|>"),
+        ]
+        let report = QAVerification.verify(segments: segments)
+        XCTAssertEqual(report.emptySegmentIndices, [1])
+    }
+
+    func testRepetitionIsDetectedDespiteDifferingTimestampTokens() {
+        let segments = [
+            segment(0, 0.0, 2.0, "<|0.00|> Kedalam<|2.00|>"),
+            segment(1, 2.0, 4.0, "<|2.00|> Kedalam<|4.00|>"),
+            segment(2, 4.0, 6.0, "<|4.00|> Kedalam<|6.00|>"),
+            segment(3, 6.0, 8.0, "<|6.00|> Something else<|8.00|>"),
+        ]
+        let report = QAVerification.verify(segments: segments, repetitionRunThreshold: 3)
+        XCTAssertEqual(report.repetitionClusters.count, 1)
+        XCTAssertEqual(report.repetitionClusters.first?.endIndex, 2)
+    }
+
     func testGarbledSegmentIsDetected() {
         let segments = [
             segment(0, 0.0, 2.0, "Normal text"),

@@ -28,6 +28,31 @@ enum TranscriptionModel: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// The spoken language to transcribe in. Forced rather than auto-detected:
+/// per-window detection on long code-switched recordings drifted into stray
+/// Indonesian/Spanish/Russian windows and hallucinated text.
+enum TranscriptionLanguage: String, CaseIterable, Identifiable, Hashable {
+    case english
+    case malay
+
+    var id: String { rawValue }
+
+    /// Whisper's language code. Malay is "ms" ("my" is Burmese).
+    var whisperCode: String {
+        switch self {
+        case .english: return "en"
+        case .malay: return "ms"
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .english: return "English"
+        case .malay: return "Malay"
+        }
+    }
+}
+
 /// Which Core ML compute unit each pipeline stage should target. Defaults
 /// mirror WhisperKit's own library defaults (ANE for encoder + decoder, GPU
 /// for mel spectrogram, CPU for prefill) — see plan's compute assignment
@@ -70,11 +95,9 @@ enum TranscriptionEngineError: Error, LocalizedError {
     }
 }
 
-/// Result of a single `transcribe(fileURL:)` call: the mapped segments plus
-/// the language WhisperKit auto-detected, for surfacing in `RunReport`.
+/// Result of a single `transcribe(fileURL:language:)` call.
 struct TranscriptionOutcome {
     let segments: [TranscriptSegment]
-    let detectedLanguage: String?
 }
 
 /// Wraps WhisperKit: loads the selected model under a given compute
@@ -170,24 +193,18 @@ actor TranscriptionEngine {
         loadedCompute = compute
     }
 
-    /// Transcribes an audio file. Auto-detects language (handles Malay/English
-    /// code-switching per the existing reports) using WhisperKit's default
+    /// Transcribes an audio file in the given language, using WhisperKit's default
     /// hallucination safeguards (compression-ratio / logprob / no-speech thresholds).
     ///
     /// `onSegments` is called with the full transcript-so-far every time WhisperKit
     /// finalizes another window of audio, so callers can render live output
     /// instead of a blank screen for the whole transcription run.
-    func transcribe(fileURL: URL, onSegments: (@Sendable ([TranscriptSegment]) -> Void)? = nil) async throws -> TranscriptionOutcome {
+    func transcribe(fileURL: URL, language: TranscriptionLanguage, onSegments: (@Sendable ([TranscriptSegment]) -> Void)? = nil) async throws -> TranscriptionOutcome {
         guard let pipe else {
-            preconditionFailure("ensureLoaded(model:) must be called before transcribe(fileURL:)")
+            preconditionFailure("ensureLoaded(model:) must be called before transcribe(fileURL:language:)")
         }
 
-        let decodeOptions = DecodingOptions(
-            task: .transcribe,
-            temperatureFallbackCount: 5,
-            usePrefillPrompt: true,
-            detectLanguage: true
-        )
+        let decodeOptions = Self.decodingOptions(for: language)
 
         let audioArray = try AudioProcessor.loadAudioAsFloatArray(fromPath: fileURL.path, channelMode: pipe.audioInputConfig.channelMode)
 
@@ -203,10 +220,17 @@ actor TranscriptionEngine {
             }
         )
 
-        let detectedLanguage = results.map(\.language).first { !$0.isEmpty }
-        return TranscriptionOutcome(
-            segments: Self.mapSegments(results.flatMap(\.segments)),
-            detectedLanguage: detectedLanguage
+        return TranscriptionOutcome(segments: Self.mapSegments(results.flatMap(\.segments)))
+    }
+
+    static func decodingOptions(for language: TranscriptionLanguage) -> DecodingOptions {
+        DecodingOptions(
+            task: .transcribe,
+            language: language.whisperCode,
+            temperatureFallbackCount: 5,
+            usePrefillPrompt: true,
+            detectLanguage: false,
+            skipSpecialTokens: true
         )
     }
 
@@ -216,7 +240,7 @@ actor TranscriptionEngine {
                 id: index,
                 start: TimeInterval(segment.start),
                 end: TimeInterval(segment.end),
-                text: segment.text,
+                text: WhisperSpecialTokens.strip(segment.text),
                 avgLogProb: Double(segment.avgLogprob),
                 compressionRatio: Double(segment.compressionRatio),
                 noSpeechProb: Double(segment.noSpeechProb)
